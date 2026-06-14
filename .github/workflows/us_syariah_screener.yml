@@ -1,1 +1,46 @@
+# ============================================================
+# GitHub Actions Workflow: US Syariah Stock Screener
+# Jadwal: Senin-Jumat jam 21:30 UTC = 04:30 WIB +1 hari
+# (US market closes ~21:00 UTC, jadi data fresh setelah close)
+# ============================================================
 
+name: US Syariah Stock Screener
+
+on:
+  schedule:
+    # Setiap hari kerja jam 21:30 UTC (04:30 WIB esok hari)
+    # Atau ganti ke 01:00 UTC jika mau jam 08:00 WIB pagi
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch:  # Bisa dijalankan manual dari GitHub
+
+jobs:
+  screening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install yfinance pandas numpy requests
+
+      - name: Jalankan US Syariah Screener
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python us_syariah_screener.py
+
+      - name: Upload Log (opsional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screening-log
+          retention-days: 7
