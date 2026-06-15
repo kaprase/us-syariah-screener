@@ -38,9 +38,4 @@ jobs:
         run: |
           python us_syariah_screener.py
 
-      - name: Upload Log (opsional)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: screening-log
-          retention-days: 7
+
