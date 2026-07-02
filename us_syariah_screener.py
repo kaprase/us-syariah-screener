@@ -9,6 +9,8 @@
 import os
 import json
 import logging
+import smtplib
+from email.mime.text import MIMEText
 import requests
 import yfinance as yf
 import pandas as pd
@@ -28,6 +30,18 @@ logger = logging.getLogger(__name__)
 # ============================================================
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+GMAIL_ADDRESS      = os.environ.get("GMAIL_ADDRESS", "")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
+ALERT_EMAIL_TO     = os.environ.get("ALERT_EMAIL_TO", "")
+
+# Ticker yang mau di-alert via email kalau sinyal SELL (pisahkan dengan koma)
+# Contoh env value: "AAPL,TSLA,NVDA"
+ALERT_TICKERS = [
+    t.strip().upper()
+    for t in os.environ.get("ALERT_TICKERS", "").split(",")
+    if t.strip()
+]
 
 # Daftar saham US yang dianalisis
 # Dipilih dari SPUS ETF holdings & DJIM US index - semua sudah terverifikasi syariah
@@ -141,6 +155,27 @@ def kirim_telegram(pesan: str) -> bool:
         return resp.status_code == 200
     except Exception as e:
         logger.error(f"Gagal kirim Telegram: {e}")
+        return False
+
+# ============================================================
+# FUNGSI EMAIL (khusus alert SELL)
+# ============================================================
+def kirim_email(subjek: str, isi: str) -> bool:
+    if not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD or not ALERT_EMAIL_TO:
+        logger.warning("Konfigurasi email belum lengkap, skip kirim email.")
+        return False
+    try:
+        msg = MIMEText(isi, "plain", "utf-8")
+        msg["Subject"] = subjek
+        msg["From"] = GMAIL_ADDRESS
+        msg["To"] = ALERT_EMAIL_TO
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+            server.sendmail(GMAIL_ADDRESS, [ALERT_EMAIL_TO], msg.as_string())
+        return True
+    except Exception as e:
+        logger.error(f"Gagal kirim email: {e}")
         return False
 
 # ============================================================
@@ -421,6 +456,35 @@ def main():
             logger.info("Notifikasi Telegram berhasil dikirim!")
         else:
             logger.warning("Gagal kirim Telegram - cek token/chat_id")
+
+        # --- Kirim email KHUSUS kalau ticker pilihan kena sinyal SELL ---
+        sell_list_all = [h for h in hasil_semua if "SELL" in h["sinyal"]]
+
+        if ALERT_TICKERS:
+            sell_list = [h for h in sell_list_all if h["ticker"] in ALERT_TICKERS]
+        else:
+            sell_list = sell_list_all  # kalau tidak diisi, alert semua SELL (default lama)
+
+        if sell_list:
+            tanggal = datetime.now().strftime("%d %b %Y")
+            isi_email = f"PERINGATAN SINYAL SELL - {tanggal}\n\n"
+            isi_email += "Saham berikut menunjukkan sinyal SELL:\n\n"
+            for h in sorted(sell_list, key=lambda x: x["skor"]):
+                isi_email += (
+                    f"- {h['ticker']} ({h['nama']})\n"
+                    f"  Harga: ${h['harga']:.2f} | Skor: {h['skor']}/100 | RSI: {h['rsi']:.1f}\n\n"
+                )
+            isi_email += "Bukan saran investasi. DYOR!\n"
+            isi_email += "Powered by Clau - Kandip's smartest assistant"
+
+            email_sukses = kirim_email(
+                subjek=f"[ALERT] Sinyal SELL Terdeteksi - {tanggal}",
+                isi=isi_email
+            )
+            if email_sukses:
+                logger.info("Email alert SELL berhasil dikirim!")
+            else:
+                logger.warning("Gagal kirim email alert SELL")
     else:
         logger.error("Tidak ada saham yang berhasil dianalisis!")
 
