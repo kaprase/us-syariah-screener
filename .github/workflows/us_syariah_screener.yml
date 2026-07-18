@@ -1,17 +1,9 @@
-# ============================================================
-# GitHub Actions Workflow: US Syariah Stock Screener
-# Jadwal: Senin-Jumat jam 21:30 UTC = 04:30 WIB +1 hari
-# (US market closes ~21:00 UTC, jadi data fresh setelah close)
-# ============================================================
-
 name: US Syariah Stock Screener
 
 on:
   schedule:
-    # Setiap hari kerja jam 21:30 UTC (04:30 WIB esok hari)
-    # Atau ganti ke 01:00 UTC jika mau jam 08:00 WIB pagi
     - cron: '30 21 * * 1-5'
-  workflow_dispatch:  # Bisa dijalankan manual dari GitHub
+  workflow_dispatch:
 
 jobs:
   screening:
@@ -35,6 +27,9 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          ls -la
+          python us_syariah_screener.py          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python us_syariah_screener.py
           ALERT_TICKERS: ${{ secrets.ALERT_TICKERS }}
