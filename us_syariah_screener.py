@@ -2,7 +2,7 @@
 # US SYARIAH STOCK SCREENER
 # Screening berbasis kriteria AAOIFI (standar syariah internasional)
 # Kirim sinyal BUY/SELL/HOLD via Telegram Bot
-# Jadwal: Setiap hari kerja jam 08:00 WIB (01:00 UTC)
+# Jadwal: Setiap hari jam 20:00 WIB
 # 🤖 Powered by Clau - Kandip's smartest assistant 😎
 # ============================================================
 
