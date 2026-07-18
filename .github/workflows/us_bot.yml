@@ -8,7 +8,7 @@ name: US Syariah Telegram Bot
 on:
   schedule:
     # Jalankan setiap hari kerja jam 00:00 UTC (07:00 WIB)
-    - cron: '0 0 * * 1-5'
+   - cron: '0 12 * * 1-5'
   workflow_dispatch:
 
 jobs:
